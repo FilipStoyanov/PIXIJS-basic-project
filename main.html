@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>PIXI JS</title>
+    <script src="js/pixi.min.js"></script>
+    <script>
+        let app;
+        let player;
+        let keys = {};
+        let keyDiv;
+        let bg;
+        let bgX = 0;
+        let bgSpeed = 2;
+        let obstacleSpeed = 3;
+        let enemySpeed = 1.5;
+        let obstacles = [];
+        let GameScore = 0;
+        let playerScore;
+        let enemy;
+        let enemies = [];
+        let obstacle;
+        let bullets = [];
+        let bulletSpeed = 4.5;
+        let score=0;
+        let textScore;
+        window.onload = function () {
+            app = new PIXI.Application(
+                {
+                    width: 800,
+                    height: 600,
+                    backgroundColor: 0xAAAAAA
+                }
+            );
+            document.body.appendChild(app.view);
+            document.querySelector("#game").appendChild(app.view);
+
+            app.loader.baseUrl = 'js';
+            app.loader.add('bg', 'mybackground.jpg');
+            app.loader.onComplete.add(initLevel);
+            app.loader.load();
+
+
+
+            player = new PIXI.Sprite.from("js/hero.png");
+            player.anchor.set(0.5);
+            player.x = app.view.width / 10;
+            player.y = app.view.height / 1.4;
+
+           
+
+            
+            window.addEventListener("keydown", keysDown);
+            window.addEventListener("keyup", keysUp);
+            app.ticker.add(gameLoop);
+            keysDiv = document.querySelector("#keys");
+
+            
+
+
+
+        }
+
+        function gameLoop2() {
+            updateBg();
+            const style = new PIXI.TextStyle(
+            {
+                fill: ['#black'],
+                fontFamily: 'Roboto',
+                fontStyle: 'bold',
+                fontSize: 32,
+            });
+            app.stage.removeChild(textScore);
+            textScore=new PIXI.Text('Score:',style);
+            app.stage.addChild(textScore);
+            app.stage.removeChild(score);
+            score=new PIXI.Text(GameScore,style);
+            score.x=90;
+            score.y=2;
+            app.stage.addChild(score);
+            GameScore=GameScore+1;
+
+        }
+        function initLevel() {
+            bg = createBg(app.loader.resources['bg'].texture);
+            app.ticker.add(gameLoop2);
+            app.ticker.add(obstacleLoop);
+            app.ticker.add(enemyLoop);
+            app.ticker.add(bulletLoop);
+          
+           
+           
+            for (let i = 0; i < 100; i++) {
+                enemy = new PIXI.Sprite.from("js/enemy.png");
+                enemy.anchor.set(0);
+                enemy.x = 80 * Math.random() * app.view.width - 200 * Math.random();
+                enemy.y = app.view.height - 160;
+                for (let k = 0; k < 10; k++) {
+                    bullet = new PIXI.Sprite.from("js/bullet.png");
+                    bullet.anchor.set(0);
+                    if (k % 2 == 0) {
+                        if (k % 3 == 0) {
+                            bullet.y = enemy.y - 10;
+                            bullet.x = enemy.x;
+                        }
+                        if (k % 4 == 0) {
+                            bullet.y = enemy.y + -50;
+                            bullet.x = enemy.x / 3;
+                        }
+                        if (k % 5 == 0) {
+                            bullet.y = enemy.y - 30;
+                            bullet.x = enemy.x / 4;
+                        }
+                    }
+                    else {
+                        bullet.x = enemy.x;
+                        bullet.y = enemy.y;
+                    }
+                    bullets.push(bullet);
+                }
+                enemies.push(enemy);
+            }
+
+            for (let i = 0; i < 100; i++) {
+                obstacle = new PIXI.Sprite.from("js/obstacle.png");
+                obstacle.anchor.set(0);
+                obstacle.x = 80 * Math.random() * app.view.width - 200 * Math.random();
+                obstacle.y = app.view.height - 600 * Math.random();
+                obstacles.push(obstacle);
+            }
+
+            
+        }
+        function rectIntersect(a, b) {
+            let aBox = a.getBounds();
+            let bBox = b.getBounds();
+           
+            return aBox.x + aBox.width > bBox.x &&
+                aBox.x < bBox.x + bBox.width &&
+                aBox.y + aBox.height > bBox.y &&
+                aBox.y < bBox.y + bBox.height;
+        }
+        function createBg(texture) {
+            let tilling = new PIXI.TilingSprite(texture, 800, 600);
+            tilling.position.set(0, 0);
+            app.stage.addChild(tilling);
+           
+            return tilling;
+        }
+       
+      
+        function updateBg() {
+
+            bgX = bgX + bgSpeed;
+            bg.tilePosition.x = bgX;
+            app.stage.addChild(player);
+           
+            for (let i = 0; i < obstacles.length; i++) {
+                app.stage.addChild(obstacles[i]);
+                if (rectIntersect(player, obstacles[i])) {
+
+                    GameScore = 0;
+                    app.stage.removeChild(player);       
+                }
+
+            }
+            for (let i = 0; i < enemies.length; i++) {
+                app.stage.addChild(enemies[i]);
+                app.stage.addChild(bullets[i]);
+                if (rectIntersect(player, enemies[i]) || rectIntersect(player,bullets[i])) {
+                    GameScore = 0;
+                    app.stage.removeChild(player);    
+                }    
+            }
+        }
+        function enemyLoop(delta) {
+            for (let i = 0; i < enemies.length; i++) {
+                enemies[i].x -= enemySpeed;
+            }
+            
+        }
+        function bulletLoop(delta) {
+            for (let i = 0; i < bullets.length; i++) {
+
+                bullets[i].x -= obstacleSpeed;
+                if (i % 2 == 0) {
+                    bullets[i].y -= 0.05;
+                }
+                else {
+                    bullets[i].y -= 0.01;
+                }
+            }
+            
+        }
+        function obstacleLoop(delta) {
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= obstacleSpeed;
+            
+
+            }
+           
+        }
+        function keysDown(event) {
+            keys[event.keyCode] = true;
+            
+        }
+        function keysUp(event) {
+            keys[event.keyCode] = false;
+        }
+
+        function gameLoop() {
+
+        
+            if (keys["87"]||keys["38"]) {
+                player.y -= 5;
+            }
+
+            if (keys["83"] || keys["40"]) {
+                player.y += 5;
+            }
+        }
+
+
+
+    </script>
+</head>
+
+<body>
+    <div id="game"></div>
+    <div id="keys"></div>
+
+</body>
+
+</html>
